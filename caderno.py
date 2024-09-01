@@ -1,19 +1,48 @@
-# python D:\Github\notepad\caderno.py
+# python D:\Github\caderno\caderno.py
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
+from collections import deque
+
+# Lista para armazenar o histórico de ações
+action_history = []
+
+def update_history(action, content, index):
+    """
+    Atualiza a lista de ações e adiciona o histórico à Listbox.
+    """
+    action_description = f"{action}: '{content}' at {index}"
+    action_history.append((action, content, index))
+    action_listbox.insert(tk.END, action_description)
+
+def insert_text(index, text):
+    """
+    Insere o texto na área de texto e atualiza o histórico.
+    """
+    text_area.insert(index, text)
+    update_history("Insert", text, index)
+
+def delete_text(index, length):
+    """
+    Exclui o texto da área de texto e atualiza o histórico.
+    """
+    deleted_text = text_area.get(index, f"{index}+{length}c")
+    text_area.delete(index, f"{index}+{length}c")
+    update_history("Delete", deleted_text, index)
+
+def on_key_release(event):
+    """
+    Captura as inserções e exclusões de texto manualmente.
+    """
+    if event.keysym in ("BackSpace", "Delete"):
+        delete_text(tk.INSERT, 1)
+    else:
+        insert_text(tk.INSERT, event.char)
 
 def new_file():
-    """
-    Limpa o conteúdo da área de texto para criar um novo arquivo.
-    """
     text_area.delete(1.0, tk.END)
 
 def open_file():
-    """
-    Abre um arquivo de texto existente e insere seu conteúdo na área de texto.
-    Exibe uma mensagem de erro se o arquivo não estiver no formato UTF-8.
-    """
     file_path = filedialog.askopenfilename(defaultextension=".txt",
                                            filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
     if file_path:
@@ -25,10 +54,6 @@ def open_file():
             messagebox.showerror("Error", "Cannot decode file. Please ensure it is in UTF-8 format.")
 
 def save_file():
-    """
-    Salva o conteúdo atual da área de texto em um arquivo. 
-    O usuário é solicitado a fornecer um nome e local para o arquivo.
-    """
     file_path = filedialog.asksaveasfilename(defaultextension=".txt",
                                              filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
     if file_path:
@@ -36,58 +61,33 @@ def save_file():
             file.write(text_area.get(1.0, tk.END))
 
 def save_as():
-    """
-    Salva o conteúdo da área de texto como um novo arquivo, 
-    solicitando um novo nome e local para o arquivo.
-    """
     save_file()
 
 def exit_app():
-    """
-    Pergunta ao usuário se deseja realmente sair do aplicativo. 
-    Se confirmado, encerra a aplicação.
-    """
     if messagebox.askokcancel("Quit", "Do you really want to quit?"):
         root.destroy()
 
 def wrap_text():
-    """
-    Ativa a quebra automática de linhas na área de texto 
-    e remove a barra de rolagem horizontal.
-    """
     text_area.config(wrap=tk.WORD)
     horizontal_scrollbar.pack_forget()
 
 def no_wrap_text():
-    """
-    Desativa a quebra automática de linhas na área de texto 
-    e adiciona a barra de rolagem horizontal.
-    """
     text_area.config(wrap=tk.NONE)
     horizontal_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
 
 def align_center():
-    """
-    Alinha o texto centralizado na área de texto.
-    """
     content = text_area.get(1.0, tk.END)
     text_area.tag_configure("center", justify='center')
     text_area.delete(1.0, tk.END)
     text_area.insert(tk.INSERT, content, "center")
 
 def align_left():
-    """
-    Alinha o texto à esquerda na área de texto.
-    """
     content = text_area.get(1.0, tk.END)
     text_area.tag_configure("left", justify='left')
     text_area.delete(1.0, tk.END)
     text_area.insert(tk.INSERT, content, "left")
 
 def align_right():
-    """
-    Alinha o texto à direita na área de texto.
-    """
     content = text_area.get(1.0, tk.END)
     text_area.tag_configure("right", justify='right')
     text_area.delete(1.0, tk.END)
@@ -96,9 +96,13 @@ def align_right():
 root = tk.Tk()
 root.title("Notepad")
 
-# Criando o widget Text com barras de rolagem
-text_frame = tk.Frame(root)
-text_frame.pack(fill=tk.BOTH, expand=1)
+# Frame principal para o widget Text e a Listbox
+main_frame = tk.Frame(root)
+main_frame.pack(fill=tk.BOTH, expand=1)
+
+# Frame para a área de texto e barras de rolagem
+text_frame = tk.Frame(main_frame)
+text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=1)
 
 # Barra de rolagem vertical
 vertical_scrollbar = tk.Scrollbar(text_frame)
@@ -117,6 +121,17 @@ text_area.pack(fill=tk.BOTH, expand=1)
 # Conectando as barras de rolagem com a área de texto
 vertical_scrollbar.config(command=text_area.yview)
 horizontal_scrollbar.config(command=text_area.xview)
+
+# Frame para a Listbox de histórico
+history_frame = tk.Frame(main_frame)
+history_frame.pack(side=tk.RIGHT, fill=tk.Y)
+
+# Listbox para exibir o histórico de ações
+action_listbox = tk.Listbox(history_frame)
+action_listbox.pack(side=tk.TOP, fill=tk.Y)
+
+# Conectando eventos de teclado e mouse para capturar as alterações
+text_area.bind("<KeyRelease>", on_key_release)
 
 # Criando Menu
 menu_bar = tk.Menu(root)
