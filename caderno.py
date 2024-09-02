@@ -1,4 +1,4 @@
-# python D:\Github\notepad\caderno.py
+# python D:\Github\caderno\caderno.py
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
